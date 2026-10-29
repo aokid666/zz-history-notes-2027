@@ -7,12 +7,13 @@ REPOS={'tuijie-manual-upper':'zz-tuijie-manual-2027','history-meetings':'zz-hist
 def fetch(repo,name):
  with urllib.request.urlopen('https://raw.githubusercontent.com/aokid666/'+repo+'/main/data/'+name+'?verify='+str(time.time_ns()),timeout=90) as r:return json.load(r)
 def dump(name,data):p=OUT/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')))
+UPPER_TEST_PAGES={19,20,31,32,38,43,53,54,58,86,87,98,99,104,119,120,131,132,143,144,157,158,181,182,194,195,208,209,221,222,234,235,244,245}
 corpusdata={};sources=[];sourceDocs={}
 for id,repo in REPOS.items():
  d=json.loads((ROOT/'data'/f'{id}.json').read_text()) if repo=='zz-history-notes-2027' else fetch(repo,id+'.json');base='https://aokid666.github.io/'+repo+'/'
  sourceDocs[id]=d
  for p in d['pages']:
-  if id.startswith('history-') or p['page']>=7:corpusdata[id+':'+str(p['page'])]=p['text']
+  if (id.startswith('history-') or p['page']>=(11 if id=='tuijie-manual-upper' else 7)) and not (id=='tuijie-manual-upper' and p['page'] in UPPER_TEST_PAGES):corpusdata[id+':'+str(p['page'])]=p['text']
  sources.append({'id':id,'title':TITLE[id],'group':'history' if id.startswith('history-') else 'tuijie','pdfUrl':base+'pdf/'+id+'.pdf','dataUrl':base+'data/'+id+'.json','sha256':d['source']['sha256'],'pages':[{'page':p['page'],'width':p['width'],'height':p['height'],'url':base+f'img/{id}/{p["page"]:03}.{p["ext"]}','sha256':p['sha256'],'bytes':p['bytes'],'imageMethod':p['imageMethod']} for p in d['pages']]})
 extra={group:review.Corpus('extra',{k:v for k,v in corpusdata.items() if k.startswith('history-')==(group=='history')},{}) for group in ['history','tuijie']}
 new=[]
@@ -49,6 +50,7 @@ for group,items in ksm.items():dump(pathlib.Path('lecture-links')/(group+'.json'
 for book,bank in new:
  dump(pathlib.Path('practice')/(book['id']+'.json'),bank)
  if book['id']=='tuijie8':raws=[fetch('zz-tuijie-exams-2027','tuijie8-question.json'),fetch('zz-tuijie-exams-2027','tuijie8-answer.json')]
+ elif book['id']=='tuijie-manual-exercises':raws=[sourceDocs['tuijie-manual-upper']]
  else:raws=[fetch('zz-tuijie-selftest-2027','source-pages.json'),sourceDocs['tuijie-manual-lower']]
  pages=[{**{k:p[k] for k in ['width','height','bytes','sha256','ext','imageMethod']},'page':i+1,'sourcePage':p['page']} for i,p in enumerate([p for d in raws for p in d['pages']])]
  dump(pathlib.Path('manifests')/(book['id']+'.json'),{'id':book['id'],'pdfSha256':book['sha256'],'pages':pages,'pdfs':[d['source'] for d in raws]})
