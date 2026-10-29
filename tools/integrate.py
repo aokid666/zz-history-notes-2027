@@ -24,7 +24,7 @@ try:
  if bank['questions']:new.append((book,bank))
 except urllib.error.HTTPError as e:
  if e.code!=404:raise
-old=review.pool();newqs=[q for book,bank in new for q in bank['questions']];allqs=old+newqs;newids={q['id'] for q in newqs};groups=collections.defaultdict(dict);counts=collections.Counter();native=review.corpora();ksm=collections.defaultdict(dict)
+newqs=[q for book,bank in new for q in bank['questions']];newids={q['id'] for q in newqs};old=[q for q in review.pool() if q['id'] not in newids];allqs=old+newqs;groups=collections.defaultdict(dict);counts=collections.Counter();native=review.corpora();ksm=collections.defaultdict(dict)
 for qi,q in enumerate(allqs):
  if qi%100==0:print('Matching source passages',qi,'/',len(allqs),flush=True)
  fs=review.facts(q);module=q.get('subject') or review.module_of(q)
