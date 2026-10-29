@@ -2,8 +2,8 @@
 import time,pathlib,json,urllib.request,importlib.util,collections,hashlib
 ROOT=pathlib.Path(__file__).resolve().parents[1];SITE=ROOT/'.site-source';OUT=ROOT/'data/integration';OUT.mkdir(parents=True,exist_ok=True)
 spec=importlib.util.spec_from_file_location('review',SITE/'scripts/review-lecture-links.py');review=importlib.util.module_from_spec(spec);spec.loader.exec_module(review);review.ROOT=SITE
-TITLE={'history-meetings':'党的重要会议-史纲','history-works':'毛著作总结-史纲','history-land':'土地政策-史纲','history-timeline':'史纲时间轴（打印版）','tuijie-manual-lower':'腿姐背诵手册 · 下册'}
-REPOS={'history-meetings':'zz-history-notes-2027','history-works':'zz-history-notes-2027','history-land':'zz-history-notes-2027','history-timeline':'zz-history-notes-2027','tuijie-manual-lower':'zz-tuijie-manual-2027'}
+TITLE={'tuijie-manual-upper':'腿姐背诵手册 · 上册','history-meetings':'党的重要会议-史纲','history-works':'毛著作总结-史纲','history-land':'土地政策-史纲','history-timeline':'史纲时间轴（打印版）','tuijie-manual-lower':'腿姐背诵手册 · 下册'}
+REPOS={'tuijie-manual-upper':'zz-tuijie-manual-2027','history-meetings':'zz-history-notes-2027','history-works':'zz-history-notes-2027','history-land':'zz-history-notes-2027','history-timeline':'zz-history-notes-2027','tuijie-manual-lower':'zz-tuijie-manual-2027'}
 def fetch(repo,name):
  with urllib.request.urlopen('https://raw.githubusercontent.com/aokid666/'+repo+'/main/data/'+name+'?verify='+str(time.time_ns()),timeout=90) as r:return json.load(r)
 def dump(name,data):p=OUT/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')))
@@ -44,12 +44,12 @@ for qi,q in enumerate(allqs):
     q[field]=[int(e['page']) if kind!='m' else e['page'] for e in hits];row[kind]=[{k:e[k] for k in ['page','quote']} for e in hits];q.setdefault('lectureEvidence',{})[kind]=row[kind];counts['new_'+kind]+=1
   ksm[group][q['id']]=row
 for q in allqs:groups[q.get('bookId') or ('manual' if q.get('source')=='m' else 'original')]
-for group,items in groups.items():dump(pathlib.Path('extra-links')/(group+'.json'),{'version':132,'items':items})
-for group,items in ksm.items():dump(pathlib.Path('lecture-links')/(group+'.json'),{'version':132,'items':items})
+for group,items in groups.items():dump(pathlib.Path('extra-links')/(group+'.json'),{'version':133,'items':items})
+for group,items in ksm.items():dump(pathlib.Path('lecture-links')/(group+'.json'),{'version':133,'items':items})
 for book,bank in new:
  dump(pathlib.Path('practice')/(book['id']+'.json'),bank)
  if book['id']=='tuijie8':raws=[fetch('zz-tuijie-exams-2027','tuijie8-question.json'),fetch('zz-tuijie-exams-2027','tuijie8-answer.json')]
  else:raws=[fetch('zz-tuijie-selftest-2027','source-pages.json'),sourceDocs['tuijie-manual-lower']]
  pages=[{**{k:p[k] for k in ['width','height','bytes','sha256','ext','imageMethod']},'page':i+1,'sourcePage':p['page']} for i,p in enumerate([p for d in raws for p in d['pages']])]
  dump(pathlib.Path('manifests')/(book['id']+'.json'),{'id':book['id'],'pdfSha256':book['sha256'],'pages':pages,'pdfs':[d['source'] for d in raws]})
-dump('books.json',[book for book,bank in new]);dump('extra-lectures.json',{'version':132,'title':'腿姐背诵手册','missingUpper':True,'sources':sources});dump('report.json',{'version':132,'questionsChecked':len(allqs),'newQuestions':len(newqs),'referenceCounts':dict(counts),'linkedQuestions':sum(map(len,groups.values())),'sourceSha256':{s['id']:s['sha256'] for s in sources}});print(json.dumps({'newQuestions':len(newqs),'counts':dict(counts)},ensure_ascii=False),flush=True)
+dump('books.json',[book for book,bank in new]);dump('extra-lectures.json',{'version':133,'title':'腿姐背诵手册','missingUpper':False,'sources':sources});dump('report.json',{'version':133,'questionsChecked':len(allqs),'newQuestions':len(newqs),'referenceCounts':dict(counts),'linkedQuestions':sum(map(len,groups.values())),'sourceSha256':{s['id']:s['sha256'] for s in sources}});print(json.dumps({'newQuestions':len(newqs),'counts':dict(counts)},ensure_ascii=False),flush=True)
