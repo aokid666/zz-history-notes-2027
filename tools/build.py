@@ -27,6 +27,6 @@ for src in sources:
     lines.append({'t':text,'b':[min(z[0] for z in box)/2,min(z[1] for z in box)/2,max(z[0] for z in box)/2,max(z[1] for z in box)/2],'confidence':score})
    lines.sort(key=lambda l:(round(l['b'][1]/4),l['b'][0]));p.update(lines=lines,text='\n'.join(l['t'] for l in lines),ocr=True)
  folder=OUT/'img'/src['id'];folder.mkdir(exist_ok=True)
- for pn in sorted({1,2,3,4,5,6,7,8,len(doc)//2,len(doc)}-{0}):doc[pn-1].get_pixmap(dpi=180,alpha=False).save(folder/f'{pn:03}.png')
+ for pn in sorted(n for n in {1,2,3,4,5,6,7,8,len(doc)//2,len(doc)} if 1<=n<=len(doc)):doc[pn-1].get_pixmap(dpi=180,alpha=False).save(folder/f'{pn:03}.png')
  dump(src['id']+'.json',{'source':src,'pages':pages});report.append({'id':src['id'],'pages':len(doc),'nativeTextPages':len(doc)-len(scanned),'scannedPages':len(scanned),'sha256':src['sha256']});print(report[-1],flush=True)
 dump('audit.json',report);(OUT/'.nojekyll').touch();(OUT/'index.html').write_text('<!doctype html><meta charset="utf-8"><title>原始资料</title><h1>原始资料与逐页文本</h1>'+''.join('<p><a href="pdf/'+s['id']+'.pdf">'+s['name']+'</a> · <a href="data/'+s['id']+'.json">逐页文本</a></p>' for s in sources))
