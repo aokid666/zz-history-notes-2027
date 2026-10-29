@@ -1,0 +1,49 @@
+"""Build guarded lecture overlays and importable banks on GitHub, without changing existing banks."""
+import pathlib,json,urllib.request,importlib.util,collections,hashlib
+ROOT=pathlib.Path(__file__).resolve().parents[1];SITE=ROOT/'.site-source';OUT=ROOT/'data/integration';OUT.mkdir(parents=True,exist_ok=True)
+spec=importlib.util.spec_from_file_location('review',SITE/'scripts/review-lecture-links.py');review=importlib.util.module_from_spec(spec);spec.loader.exec_module(review);review.ROOT=SITE
+TITLE={'history-meetings':'党的重要会议-史纲','history-works':'毛著作总结-史纲','history-land':'土地政策-史纲','history-timeline':'史纲时间轴（打印版）','tuijie-manual-lower':'腿姐背诵手册 · 下册'}
+REPOS={'history-meetings':'zz-history-notes-2027','history-works':'zz-history-notes-2027','history-land':'zz-history-notes-2027','history-timeline':'zz-history-notes-2027','tuijie-manual-lower':'zz-tuijie-manual-2027'}
+def fetch(repo,name):
+ with urllib.request.urlopen('https://raw.githubusercontent.com/aokid666/'+repo+'/main/data/'+name,timeout=90) as r:return json.load(r)
+def dump(name,data):p=OUT/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')))
+corpusdata={};sources=[]
+for id,repo in REPOS.items():
+ d=json.loads((ROOT/'data'/f'{id}.json').read_text()) if repo=='zz-history-notes-2027' else fetch(repo,id+'.json');base='https://aokid666.github.io/'+repo+'/'
+ for p in d['pages']:
+  if id.startswith('history-') or p['page']>=7:corpusdata[id+':'+str(p['page'])]=p['text']
+ sources.append({'id':id,'title':TITLE[id],'group':'history' if id.startswith('history-') else 'tuijie','pdfUrl':base+'pdf/'+id+'.pdf','dataUrl':base+'data/'+id+'.json','sha256':d['source']['sha256'],'pages':[{'page':p['page'],'width':p['width'],'height':p['height'],'url':base+f'img/{id}/{p["page"]:03}.{p["ext"]}','sha256':p['sha256'],'bytes':p['bytes'],'imageMethod':p['imageMethod']} for p in d['pages']]})
+extra={group:review.Corpus('extra',{k:v for k,v in corpusdata.items() if k.startswith('history-')==(group=='history')},{}) for group in ['history','tuijie']}
+new=[]
+for repo,id in [('zz-tuijie-exams-2027','tuijie8'),('zz-tuijie-selftest-2027','tuijie-selftest')]:
+ bank=fetch(repo,id+'.json');book=fetch(repo,'book.json');new.append((book,bank))
+# Lower manual has only the exercises that can be located in the actual source.
+try:
+ bank=fetch('zz-tuijie-manual-2027','tuijie-manual-exercises.json');book=fetch('zz-tuijie-manual-2027','book.json')
+ if bank['questions']:new.append((book,bank))
+except urllib.error.HTTPError as e:
+ if e.code!=404:raise
+old=review.pool();newqs=[q for book,bank in new for q in bank['questions']];allqs=old+newqs;newids={q['id'] for q in newqs};groups=collections.defaultdict(dict);counts=collections.Counter();native=review.corpora();ksm=collections.defaultdict(dict)
+for qi,q in enumerate(allqs):
+ if qi%100==0:print('Matching source passages',qi,'/',len(allqs),flush=True)
+ fs=review.facts(q);module=q.get('subject') or review.module_of(q)
+ found=extra['tuijie'].find(fs,module='')+(extra['history'].find(fs,module='') if any(x in module for x in ['史纲','近现代史','毛泽东思想','毛中特']) else []);refs=list(q.get('extraLectures',[]))
+ for hit in found:
+  id,p=hit['page'].split(':');history=id.startswith('history-')
+  if history and not any(x in module for x in ['史纲','近现代史','毛泽东思想','毛中特']):continue
+  refs.append({'source':id,'page':int(p),'quote':hit['quote'],'method':hit['method']});counts['history' if history else 'tuijie']+=1
+ group=q.get('bookId') or ('manual' if q.get('source')=='m' else 'original')
+ if refs:groups[group][q['id']]={'sig':review.signature(q),'refs':refs}
+ if q['id'] in newids:
+  row={'sig':review.signature(q)}
+  for kind,field in review.FIELDS.items():
+   if q.get(field):continue
+   hits=native[kind].find(fs,module)
+   if hits:
+    q[field]=[int(e['page']) if kind!='m' else e['page'] for e in hits];row[kind]=[{k:e[k] for k in ['page','quote']} for e in hits];counts['new_'+kind]+=1
+  ksm[group][q['id']]=row
+for q in allqs:groups[q.get('bookId') or ('manual' if q.get('source')=='m' else 'original')]
+for group,items in groups.items():dump(pathlib.Path('extra-links')/(group+'.json'),{'version':132,'items':items})
+for group,items in ksm.items():dump(pathlib.Path('lecture-links')/(group+'.json'),{'version':132,'items':items})
+for book,bank in new:dump(pathlib.Path('practice')/(book['id']+'.json'),bank)
+dump('books.json',[book for book,bank in new]);dump('extra-lectures.json',{'version':132,'title':'腿姐背诵手册','missingUpper':True,'sources':sources});dump('report.json',{'version':132,'questionsChecked':len(allqs),'newQuestions':len(newqs),'referenceCounts':dict(counts),'linkedQuestions':sum(map(len,groups.values())),'sourceSha256':{s['id']:s['sha256'] for s in sources}});print(json.dumps({'newQuestions':len(newqs),'counts':dict(counts)},ensure_ascii=False),flush=True)
