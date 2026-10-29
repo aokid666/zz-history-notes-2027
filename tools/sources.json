@@ -1,0 +1,38 @@
+[
+  {
+    "id": "history-meetings",
+    "name": "党的重要会议-史纲.pdf",
+    "parts": [
+      "pdf/history-meetings.01.part"
+    ],
+    "sha256": "3d42cde7e846b4a8dddb51359a4fcce507bd641bc08c2589d270caa52cb7cf62",
+    "bytes": 257816
+  },
+  {
+    "id": "history-works",
+    "name": "毛著作总结-史纲.pdf",
+    "parts": [
+      "pdf/history-works.01.part"
+    ],
+    "sha256": "dbf9ff97b1d8184aa94913c166dab24024ded813c73259cc07e1b1be55a2b21f",
+    "bytes": 195766
+  },
+  {
+    "id": "history-land",
+    "name": "土地政策-史纲.pdf",
+    "parts": [
+      "pdf/history-land.01.part"
+    ],
+    "sha256": "82f0359b275d267f059d54b71295078157bbdb9d13480b5cba9aaac328b7789f",
+    "bytes": 185747
+  },
+  {
+    "id": "history-timeline",
+    "name": "史纲时间轴（打印版）.pdf",
+    "parts": [
+      "pdf/history-timeline.01.part"
+    ],
+    "sha256": "d1c76ae9c3e0f0d3c133792ba3517bfe48aab0cd97aca3586b03ee4dcb7184a2",
+    "bytes": 510957
+  }
+]
