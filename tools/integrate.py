@@ -1,11 +1,11 @@
 """Build guarded lecture overlays and importable banks on GitHub, without changing existing banks."""
-import pathlib,json,urllib.request,importlib.util,collections,hashlib
+import time,pathlib,json,urllib.request,importlib.util,collections,hashlib
 ROOT=pathlib.Path(__file__).resolve().parents[1];SITE=ROOT/'.site-source';OUT=ROOT/'data/integration';OUT.mkdir(parents=True,exist_ok=True)
 spec=importlib.util.spec_from_file_location('review',SITE/'scripts/review-lecture-links.py');review=importlib.util.module_from_spec(spec);spec.loader.exec_module(review);review.ROOT=SITE
 TITLE={'history-meetings':'党的重要会议-史纲','history-works':'毛著作总结-史纲','history-land':'土地政策-史纲','history-timeline':'史纲时间轴（打印版）','tuijie-manual-lower':'腿姐背诵手册 · 下册'}
 REPOS={'history-meetings':'zz-history-notes-2027','history-works':'zz-history-notes-2027','history-land':'zz-history-notes-2027','history-timeline':'zz-history-notes-2027','tuijie-manual-lower':'zz-tuijie-manual-2027'}
 def fetch(repo,name):
- with urllib.request.urlopen('https://raw.githubusercontent.com/aokid666/'+repo+'/main/data/'+name,timeout=90) as r:return json.load(r)
+ with urllib.request.urlopen('https://raw.githubusercontent.com/aokid666/'+repo+'/main/data/'+name+'?verify='+str(time.time_ns()),timeout=90) as r:return json.load(r)
 def dump(name,data):p=OUT/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')))
 corpusdata={};sources=[];sourceDocs={}
 for id,repo in REPOS.items():
